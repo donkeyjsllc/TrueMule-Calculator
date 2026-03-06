@@ -1,6 +1,6 @@
 {
-  "name": "Auction Calc V5",
-  "short_name": "AuctionCalc",
+  "name": "ProfitPulse",
+  "short_name": "ProfitPulse",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#0e1117",
@@ -11,5 +11,15 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "share_target": {
+    "action": "./index.html",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "item",
+      "text": "link",
+      "url": "link"
+    }
+  }
 }
