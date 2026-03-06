@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Auction V5: Pro</title>
+    <title>ProfitPulse</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="manifest" href="manifest.json">
     <style>
@@ -13,7 +13,7 @@
         .tab-btn { flex: 1; padding: 15px; background-color: #262730; color: #888; border: none; font-size: 18px; font-weight: bold; cursor: pointer; border-bottom: 3px solid transparent; }
         .tab-btn.active { color: #ffbd45; border-bottom: 3px solid #ffbd45; background-color: #1e1e24; }
         
-        /* Install Button (Hidden by default) */
+        /* Install Button */
         #install-btn { display: none; background-color: #00cc96; color: black; font-weight: bold; padding: 10px; border-radius: 5px; text-align: center; margin-bottom: 15px; cursor: pointer; }
 
         /* Containers */
@@ -57,23 +57,14 @@
         .storage-fill { height: 100%; background-color: #00cc96; width: 0%; transition: width 0.5s; }
         .storage-text { font-size: 11px; color: #888; text-align: right; margin-top: 2px; }
 
-        /* LEGAL FOOTER - HIGH VISIBILITY */
-        footer { 
-            text-align: center; 
-            font-size: 12px; 
-            color: #ccc; 
-            margin-top: 40px; 
-            border: 1px solid #555; 
-            background-color: #1a1a1a; 
-            padding: 20px; 
-            border-radius: 8px;
-        }
+        /* LEGAL FOOTER */
+        footer { text-align: center; font-size: 12px; color: #ccc; margin-top: 40px; border: 1px solid #555; background-color: #1a1a1a; padding: 20px; border-radius: 8px; }
         .disclaimer-title { color: #ff4b4b; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; display: block; }
     </style>
 </head>
 <body onload="initApp()">
 
-<div id="install-btn" onclick="installApp()">📲 Install App to Home Screen</div>
+<div id="install-btn" onclick="installApp()">📲 Install ProfitPulse App</div>
 
 <div class="nav-bar">
     <button class="tab-btn active" onclick="switchTab('calc')">🧮 Calculator</button>
@@ -85,35 +76,42 @@
         <label for="photo-input" class="photo-btn-label">📸 Take Photo / Select Image</label>
         <input type="file" id="photo-input" accept="image/*" capture="environment" onchange="previewPhoto()">
         <img id="preview-img">
+        
         <label>Paste Link (Auto-Fills)</label>
         <input type="text" id="url" placeholder="Paste https://..." oninput="autoFillName()">
         <label>Item Name</label>
-        <input type="text" id="item" placeholder="e.g. Ryobi Drill">
+        <input type="text" id="item" placeholder="e.g. Dewalt Drill">
+        
         <div class="row">
             <div class="col"><label>Buyer's Prem (%)</label><input type="number" id="premium" value="18" oninput="calculate()"></div>
             <div class="col"><label>Sales Tax (%)</label><input type="number" id="tax" value="9.25" oninput="calculate()"></div>
         </div>
+        
         <label style="color:#ffbd45; font-weight:bold;">Current Bid ($)</label>
         <input type="number" id="bid" placeholder="0.00" style="font-size:22px; border:1px solid #ffbd45;" oninput="calculate()">
+        
         <div class="row">
             <div class="col"><label>Shipping ($)</label><input type="number" id="shipping" placeholder="0.00" oninput="calculate()"></div>
             <div class="col"><label>Repairs ($)</label><input type="number" id="repair" placeholder="0.00" oninput="calculate()"></div>
         </div>
+        
         <label>Est. Resale ($)</label>
         <input type="number" id="resale" placeholder="0.00" oninput="calculate()">
+        
         <div class="total-box">
             <div style="font-size:14px; color:#aaa;">TRUE COST</div>
             <div class="total-price" id="total-display">$0.00</div>
             <div id="profit-display" class="profit-text"></div>
             <div id="advice-box" style="margin-top:10px;"></div>
         </div>
+        
         <button class="btn-save" id="save-btn" onclick="processAndSave()">📥 SAVE ENTRY</button>
     </div>
 </div>
 
 <div id="ledger" class="tab-content">
     <div class="container">
-        <h3 style="color:#ffbd45; text-align:center;">Inventory Log</h3>
+        <h3 style="color:#ffbd45; text-align:center;">ProfitPulse Ledger</h3>
         <h2 style="text-align:center; color:#00cc96;" id="grand-total">$0.00 Invested</h2>
         <table><thead><tr><th>Photo</th><th>Item</th><th>Cost</th><th>X</th></tr></thead><tbody id="ledger-table"></tbody></table>
         <div class="storage-bar"><div class="storage-fill" id="storage-fill"></div></div>
@@ -130,7 +128,7 @@
     <p>This application is provided "As-Is" for <strong>estimation purposes only</strong>.</p>
     <p>Calculations do not constitute financial advice. The developer is <strong>not liable</strong> for any financial losses, overbidding, or errors resulting from the use of this tool.</p>
     <p>Always verify auction terms and fees independently.</p>
-    <p>&copy; 2026 Auction Calculator. Data Stored Locally.</p>
+    <p>&copy; 2026 ProfitPulse. Data Stored Locally.</p>
 </footer>
 
 <div id="img-modal" onclick="closeModal()"><span id="close-modal">&times;</span><img id="modal-content"></div>
@@ -140,9 +138,29 @@
     let deferredPrompt;
 
     function initApp() {
+        // Load existing saved items (we keep "auctionV4" key so you don't lose old data)
         let stored = localStorage.getItem("auctionV4");
         if (stored) { savedData = JSON.parse(stored); renderLedger(); }
         updateStorageMeter();
+
+        // Check for Shared Links from Mobile Browser
+        const queryString = window.location.search;
+        if (queryString) {
+            const urlParams = new URLSearchParams(queryString);
+            const sharedItem = urlParams.get('item'); 
+            const sharedLink = urlParams.get('link') || urlParams.get('text');
+            const sharedPrice = urlParams.get('val'); 
+
+            if (sharedItem) document.getElementById("item").value = decodeURIComponent(sharedItem);
+            if (sharedLink) document.getElementById("url").value = decodeURIComponent(sharedLink);
+            if (sharedPrice) {
+                document.getElementById("bid").value = sharedPrice;
+                calculate(); 
+            }
+
+            // Clean the browser address bar
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
     }
 
     // --- INSTALL LOGIC ---
@@ -161,10 +179,11 @@
             }
             deferredPrompt = null;
         } else {
-            alert("To install: Tap the 3 dots (top right) -> 'Add to Home screen'");
+            alert("To install manually: Tap the 3 dots (top right) in Chrome -> 'Add to Home screen'");
         }
     }
 
+    // --- APP LOGIC ---
     function switchTab(tabName) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -172,6 +191,7 @@
         if(tabName === 'calc') document.querySelector('button[onclick="switchTab(\'calc\')"]').classList.add('active');
         if(tabName === 'ledger') document.querySelector('button[onclick="switchTab(\'ledger\')"]').classList.add('active');
     }
+    
     function previewPhoto() {
         let file = document.getElementById("photo-input").files[0];
         if (file) {
@@ -186,6 +206,7 @@
             reader.readAsDataURL(file);
         }
     }
+    
     function compressImage(file, callback) {
         let reader = new FileReader(); reader.readAsDataURL(file);
         reader.onload = function(event) {
@@ -199,6 +220,7 @@
             }
         }
     }
+    
     function processAndSave() {
         let btn = document.getElementById("save-btn"); let file = document.getElementById("photo-input").files[0]; let bid = document.getElementById("bid").value;
         if (!bid) { alert("Enter a bid first!"); return; }
@@ -206,6 +228,7 @@
         if (file) { compressImage(file, function(base64) { currentPhotoBase64 = base64; saveToLedger(); btn.innerText = "📥 SAVE ENTRY"; }); } 
         else { currentPhotoBase64 = ""; saveToLedger(); btn.innerText = "📥 SAVE ENTRY"; }
     }
+    
     function saveToLedger() {
         let item = document.getElementById("item").value || "Unknown Item"; let bid = document.getElementById("bid").value; let url = document.getElementById("url").value;
         let entry = { item: item, bid: bid, total: currentCost.toFixed(2), profit: currentProfit.toFixed(2), url: url, photo: currentPhotoBase64 };
@@ -213,6 +236,7 @@
         try { localStorage.setItem("auctionV4", JSON.stringify(savedData)); } catch (e) { alert("⚠️ Storage Full!"); savedData.pop(); return; }
         resetInputs(); renderLedger(); alert("Saved: " + item);
     }
+    
     function resetInputs() {
         document.getElementById("item").value = ""; document.getElementById("bid").value = ""; document.getElementById("url").value = "";
         document.getElementById("resale").value = ""; document.getElementById("shipping").value = ""; document.getElementById("repair").value = "";
@@ -222,6 +246,7 @@
         document.querySelector(".photo-btn-label").style.color = "#4facfe";
         document.getElementById("total-display").innerText = "$0.00"; document.getElementById("profit-display").innerText = ""; document.getElementById("advice-box").innerText = "";
     }
+    
     function renderLedger() {
         let table = document.getElementById("ledger-table"); table.innerHTML = ""; let grandTotal = 0;
         for (let i = savedData.length - 1; i >= 0; i--) {
@@ -233,13 +258,16 @@
         }
         document.getElementById("grand-total").innerText = "Total Invested: $" + grandTotal.toFixed(2); updateStorageMeter();
     }
+    
     function viewImage(src) { document.getElementById("img-modal").style.display = "block"; document.getElementById("modal-content").src = src; }
     function closeModal() { document.getElementById("img-modal").style.display = "none"; }
+    
     function updateStorageMeter() {
         let used = JSON.stringify(savedData).length; let max = 5000000; let pct = (used / max) * 100;
         document.getElementById("storage-fill").style.width = pct + "%"; document.getElementById("storage-text").innerText = "Storage Used: " + pct.toFixed(1) + "%";
         if (pct > 90) document.getElementById("storage-fill").style.backgroundColor = "#ff4b4b";
     }
+    
     function autoFillName() { 
         let url = document.getElementById("url").value; if (!url) return;
         try { let parts = url.split("/"); let lastPart = parts[parts.length - 1] || parts[parts.length - 2];
@@ -247,6 +275,7 @@
                 cleanName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1); document.getElementById("item").value = cleanName; }
         } catch (e) {}
     }
+    
     function calculate() {
         let bid = parseFloat(document.getElementById("bid").value) || 0; let premium = parseFloat(document.getElementById("premium").value) || 0;
         let tax = parseFloat(document.getElementById("tax").value) || 0; let shipping = parseFloat(document.getElementById("shipping").value) || 0;
@@ -258,11 +287,13 @@
             else { profitEl.innerHTML = "Est. Profit: <span style='color:#ff4b4b'>-$" + Math.abs(currentProfit).toFixed(2) + "</span>"; document.getElementById("advice-box").innerHTML = "<span class='stop'>🛑 STOP (Loss)</span>"; }
         } else { document.getElementById("profit-display").innerText = ""; document.getElementById("advice-box").innerHTML = ""; }
     }
+    
     function deleteItem(index) { if(confirm("Delete this line?")) { savedData.splice(index, 1); localStorage.setItem("auctionV4", JSON.stringify(savedData)); renderLedger(); } }
     function clearLedger() { if(confirm("Are you sure? This deletes ALL history.")) { savedData = []; localStorage.removeItem("auctionV4"); renderLedger(); } }
+    
     function exportCSV() {
         let csv = "Item,Bid,True Cost,Link,Photo(Base64)\n"; savedData.forEach(row => { let safeItem = row.item.replace(/,/g, " "); csv += `${safeItem},${row.bid},${row.total},${row.url},"${row.photo ? 'Yes' : 'No'}"\n`; });
-        let link = document.createElement("a"); link.href = "data:text/csv;charset=utf-8," + encodeURI(csv); link.download = "auction_ledger_photos.csv"; link.click();
+        let link = document.createElement("a"); link.href = "data:text/csv;charset=utf-8," + encodeURI(csv); link.download = "ProfitPulse_Ledger.csv"; link.click();
     }
 </script>
 
