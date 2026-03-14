@@ -1,6 +1,6 @@
 {
-  "name": "ProfitPulse",
-  "short_name": "ProfitPulse",
+  "name": "TrueMule Calculator",
+  "short_name": "TrueMule Calculator",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#0e1117",
