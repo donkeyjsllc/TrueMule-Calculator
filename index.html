@@ -97,6 +97,13 @@
         
         <label>Est. Resale ($)</label>
         <input type="number" id="resale" placeholder="0.00" oninput="calculate()">
+
+        <div style="margin-top:12px; background-color:#1e2126; border:1px dashed #ffbd45; border-radius:5px; padding:12px;">
+            <label style="color:#ffbd45; font-weight:bold; font-size:13px;">🎯 MAX BID CALCULATOR</label>
+            <label style="margin-top:6px;">Target Profit ($)</label>
+            <input type="number" id="target-profit" placeholder="e.g. 20.00" oninput="calculateMaxBid()">
+            <div id="max-bid-display" style="text-align:center; margin-top:8px; font-size:15px; color:#aaa;">Enter target profit to see max bid</div>
+        </div>
         
         <div class="total-box">
             <div style="font-size:14px; color:#aaa;">TRUE COST</div>
@@ -142,6 +149,12 @@
         let stored = localStorage.getItem("auctionV4");
         if (stored) { savedData = JSON.parse(stored); renderLedger(); }
         updateStorageMeter();
+
+        // Load saved defaults for tax and premium
+        let savedTax = localStorage.getItem("defaultTax");
+        let savedPremium = localStorage.getItem("defaultPremium");
+        if (savedTax !== null) document.getElementById("tax").value = savedTax;
+        if (savedPremium !== null) document.getElementById("premium").value = savedPremium;
 
         // Check for Shared Links from Mobile Browser
         const queryString = window.location.search;
@@ -280,20 +293,40 @@
         let bid = parseFloat(document.getElementById("bid").value) || 0; let premium = parseFloat(document.getElementById("premium").value) || 0;
         let tax = parseFloat(document.getElementById("tax").value) || 0; let shipping = parseFloat(document.getElementById("shipping").value) || 0;
         let repair = parseFloat(document.getElementById("repair").value) || 0; let resale = parseFloat(document.getElementById("resale").value) || 0;
+        // Save tax and premium as user defaults
+        localStorage.setItem("defaultTax", tax);
+        localStorage.setItem("defaultPremium", premium);
         let auctionCost = bid * (1 + premium/100) * (1 + tax/100); currentCost = auctionCost + shipping + repair;
         document.getElementById("total-display").innerText = "$" + currentCost.toFixed(2);
         if (resale > 0) { currentProfit = resale - currentCost; let profitEl = document.getElementById("profit-display");
             if (currentProfit > 0) { profitEl.innerHTML = "Est. Profit: <span style='color:#00cc96'>+$" + currentProfit.toFixed(2) + "</span>"; document.getElementById("advice-box").innerHTML = "<span class='go'>✅ GO</span>"; }
             else { profitEl.innerHTML = "Est. Profit: <span style='color:#ff4b4b'>-$" + Math.abs(currentProfit).toFixed(2) + "</span>"; document.getElementById("advice-box").innerHTML = "<span class='stop'>🛑 STOP (Loss)</span>"; }
         } else { document.getElementById("profit-display").innerText = ""; document.getElementById("advice-box").innerHTML = ""; }
+        calculateMaxBid();
+    }
+
+    function calculateMaxBid() {
+        let premium = parseFloat(document.getElementById("premium").value) || 0;
+        let tax = parseFloat(document.getElementById("tax").value) || 0;
+        let shipping = parseFloat(document.getElementById("shipping").value) || 0;
+        let repair = parseFloat(document.getElementById("repair").value) || 0;
+        let resale = parseFloat(document.getElementById("resale").value) || 0;
+        let targetProfit = parseFloat(document.getElementById("target-profit").value);
+        let el = document.getElementById("max-bid-display");
+        if (!resale) { el.innerHTML = "<span style='color:#888'>Enter Est. Resale first</span>"; return; }
+        let effectiveTarget = isNaN(targetProfit) ? 0 : targetProfit;
+        let maxBid = (resale - shipping - repair - effectiveTarget) / ((1 + premium/100) * (1 + tax/100));
+        if (maxBid <= 0) { el.innerHTML = "<span style='color:#ff4b4b'>🛑 No viable bid at these costs</span>"; return; }
+        let label = isNaN(targetProfit) ? "Break-even max bid" : `Max bid for $${effectiveTarget.toFixed(2)} profit`;
+        el.innerHTML = `<span style='color:#ffbd45; font-weight:bold; font-size:18px;'>$${maxBid.toFixed(2)}</span><br><span style='font-size:12px; color:#aaa;'>${label}</span>`;
     }
     
     function deleteItem(index) { if(confirm("Delete this line?")) { savedData.splice(index, 1); localStorage.setItem("auctionV4", JSON.stringify(savedData)); renderLedger(); } }
     function clearLedger() { if(confirm("Are you sure? This deletes ALL history.")) { savedData = []; localStorage.removeItem("auctionV4"); renderLedger(); } }
     
     function exportCSV() {
-        let csv = "Item,Bid,True Cost,Link,Photo(Base64)\n"; savedData.forEach(row => { let safeItem = row.item.replace(/,/g, " "); csv += `${safeItem},${row.bid},${row.total},${row.url},"${row.photo ? 'Yes' : 'No'}"\n`; });
-        let link = document.createElement("a"); link.href = "data:text/csv;charset=utf-8," + encodeURI(csv); link.download = "ProfitPulse_Ledger.csv"; link.click();
+        let csv = "Item,Bid,True Cost,Est. Profit,Link\n"; savedData.forEach(row => { let safeItem = row.item.replace(/,/g, " "); let profit = row.profit !== undefined ? row.profit : ""; csv += `${safeItem},${row.bid},${row.total},${profit},${row.url}\n`; });
+        let link = document.createElement("a"); link.href = "data:text/csv;charset=utf-8," + encodeURI(csv); link.download = "TrueMule_Ledger.csv"; link.click();
     }
 </script>
 
